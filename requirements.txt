@@ -1,0 +1,38 @@
+# ──────────────────────────────────────────────
+# Spiritual Assistant — Python Dependencies
+# ──────────────────────────────────────────────
+# Install with: pip install -r requirements.txt
+#
+# Uses Qdrant (local embedded mode) for vector storage.
+# No PostgreSQL required.
+
+# ── Web Framework ──────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# ── Vector Database ────────────────────────────
+qdrant-client>=1.12.0
+
+# ── Embeddings ─────────────────────────────────
+sentence-transformers>=3.3.0
+
+# ── PDF Processing ─────────────────────────────
+pypdf>=5.1.0
+python-docx>=1.1.0
+
+# ── OpenAI API ─────────────────────────────────
+openai>=1.55.0
+
+# ── Configuration ──────────────────────────────
+python-dotenv>=1.0.1
+
+# ── MySQL ──────────────────────────────────────
+mysql-connector-python>=8.0.33
+
+# ── Data Validation ────────────────────────────
+pydantic>=2.10.0
+
+# ── Testing ────────────────────────────────────
+pytest>=8.3.0
+pytest-asyncio>=0.25.0
+httpx>=0.28.0

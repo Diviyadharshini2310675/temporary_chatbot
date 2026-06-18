@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Spiritual Assistant | Luminous Guidance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Bright, serene color palette — light & luminous */
+      --bg-body: #fefaf5;
+      --bg-primary: #ffffff;
+      --bg-sidebar: #fbf7f0;
+      --bg-chat: #fffdf9;
+      --bg-elevated: #ffffff;
+      --bg-user-msg: #f0ebe3;
+      --gold-primary: #d4a373;
+      --gold-dim: #c9925c;
+      --gold-soft: #faedcd;
+      --gold-border: #e9d9c2;
+      --gold-glow: rgba(212, 163, 115, 0.25);
+      --text-primary: #3b2e24;
+      --text-secondary: #6b5a4a;
+      --text-muted: #9e8b78;
+      --text-dim: #b9aa99;
+      --success: #5c9e6b;
+      --danger: #e07a5f;
+      --radius-card: 28px;
+      --radius-bubble: 24px;
+      --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+      --shadow-glow: 0 8px 20px rgba(212, 163, 115, 0.12);
+      --transition: all 0.25s ease;
+    }
+
+    body {
+      background: linear-gradient(145deg, #fff5ec 0%, #fef3e8 100%);
+      font-family: 'Inter', sans-serif;
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* main container — bright, airy, soft shadow */
+    .app {
+      width: 100%;
+      max-width: 1100px;
+      height: 92vh;
+      max-height: 860px;
+      background: var(--bg-primary);
+      border-radius: 36px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 20px 45px -12px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(212, 163, 115, 0.2);
+    }
+
+    /* top bar — light, elegant, with golden accent */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 74px;
+      background: rgba(255, 253, 249, 0.96);
+      backdrop-filter: blur(2px);
+      border-bottom: 1px solid var(--gold-border);
+      flex-shrink: 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lotus-icon {
+      font-size: 34px;
+      filter: drop-shadow(0 2px 6px rgba(212, 163, 115, 0.3));
+      animation: gentleFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .topbar-title {
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #c0825e, #b46f48);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: 0.02em;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid var(--gold-border);
+      padding: 6px 20px;
+      border-radius: 40px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      backdrop-filter: blur(2px);
+    }
+
+    .btn-clear:hover {
+      border-color: var(--gold-primary);
+      color: var(--gold-primary);
+      background: rgba(212, 163, 115, 0.06);
+      transform: translateY(-1px);
+    }
+
+    /* chat area — soft scroll */
+    .chat-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-chat);
+      scroll-behavior: smooth;
+    }
+
+    .chat-messages {
+      padding: 28px 28px 20px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .chat-wrapper::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-wrapper::-webkit-scrollbar-track {
+      background: #f7efe7;
+      border-radius: 10px;
+    }
+
+    .chat-wrapper::-webkit-scrollbar-thumb {
+      background: #ddcdbb;
+      border-radius: 10px;
+    }
+
+    /* welcome card — bright, glowing, friendly */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 28px;
+      margin: 30px auto;
+      background: #ffffff;
+      border-radius: 56px;
+      max-width: 520px;
+      border: 1px solid #f3e5d5;
+      box-shadow: var(--shadow-glow);
+    }
+
+    .welcome-lotus {
+      font-size: 72px;
+      filter: drop-shadow(0 5px 12px rgba(212, 163, 115, 0.25));
+      animation: gentleSwing 5s ease-in-out infinite;
+    }
+
+    @keyframes gentleSwing {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(1deg); }
+    }
+
+    .welcome h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 32px;
+      font-weight: 600;
+      color: #c2825b;
+      margin: 16px 0 8px;
+    }
+
+    .welcome p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 400px;
+      line-height: 1.65;
+    }
+
+    /* message bubbles — light & modern */
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+      animation: fadeSlide 0.28s ease-out;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+    }
+
+    .message.error {
+      align-self: flex-start;
+    }
+
+    .msg-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #c58f62;
+      margin-bottom: 5px;
+      margin-left: 12px;
+      margin-right: 12px;
+    }
+
+    .bubble {
+      padding: 14px 22px;
+      font-size: 15px;
+      line-height: 1.65;
+      border-radius: var(--radius-bubble);
+      word-break: break-word;
+      white-space: pre-wrap;
+      transition: var(--transition);
+    }
+
+    .message.user .bubble {
+      background: var(--bg-user-msg);
+      border-radius: 26px 26px 6px 26px;
+      color: #2f241b;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .message.bot .bubble {
+      background: #ffffff;
+      border: 1px solid #f0e4d8;
+      border-radius: 26px 26px 26px 6px;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .message.error .bubble {
+      background: #fef2ef;
+      border: 1px solid #ffcdc1;
+      color: #c95f44;
+      border-radius: 26px 26px 6px 26px;
+    }
+
+    /* sources — elegant collapsible */
+    .sources-wrapper {
+      margin-top: 12px;
+      width: 100%;
+    }
+
+    details.sources {
+      background: #ffffff;
+      border: 1px solid var(--gold-border);
+      border-radius: 22px;
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    details.sources summary {
+      padding: 12px 20px;
+      cursor: pointer;
+      color: #bc7f55;
+      font-weight: 600;
+      font-size: 12.5px;
+      letter-spacing: 0.2px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fefaf5;
+    }
+
+    details.sources summary:hover {
+      background: #fcf5ec;
+    }
+
+    details.sources summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.sources summary::before {
+      content: "📜";
+      font-size: 14px;
+    }
+
+    .sources-list {
+      padding: 8px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .source-item {
+      background: #fefaf5;
+      border-radius: 20px;
+      padding: 12px 16px;
+      border-left: 3px solid #e5bc93;
+    }
+
+    .source-meta {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .source-book {
+      font-weight: 700;
+      color: #b47c54;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .source-page {
+      color: #9b8979;
+      font-size: 11px;
+    }
+
+    .source-chapter {
+      color: #8b7355;
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    .source-score {
+      margin-left: auto;
+      font-size: 10px;
+      background: #f3e4d6;
+      border-radius: 30px;
+      padding: 3px 12px;
+      color: #a06944;
+    }
+
+    .source-excerpt {
+      color: #5e5042;
+      font-size: 12.5px;
+      line-height: 1.55;
+      border-top: 1px solid #f0e2d4;
+      padding-top: 8px;
+      margin-top: 6px;
+    }
+
+    /* typing — warm light dots */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 24px;
+      background: #ffffff;
+      border-radius: 28px;
+      border: 1px solid #f0e2d4;
+      width: fit-content;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #d4a16e;
+      animation: gentleWave 1.3s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes gentleWave {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* input area — fresh & bright */
+    .input-area {
+      background: #ffffff;
+      border-top: 1px solid var(--gold-border);
+      padding: 20px 28px 26px;
+      flex-shrink: 0;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 14px;
+    }
+
+    .textarea-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    textarea#userInput {
+      width: 100%;
+      background: #fefcf9;
+      border: 1.5px solid #e9dbc9;
+      border-radius: 44px;
+      padding: 14px 22px;
+      color: #2f241b;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      outline: none;
+      resize: none;
+      transition: var(--transition);
+      min-height: 54px;
+      max-height: 150px;
+    }
+
+    textarea#userInput:focus {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.15);
+      background: #ffffff;
+    }
+
+    textarea#userInput::placeholder {
+      color: #cbbaa8;
+      font-weight: 400;
+    }
+
+    .btn-send {
+      width: 54px;
+      height: 54px;
+      background: #f6ede3;
+      border: 1px solid var(--gold-border);
+      border-radius: 60px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      flex-shrink: 0;
+      color: #c2825b;
+    }
+
+    .btn-send:hover:not(:disabled) {
+      background: #eddac8;
+      border-color: var(--gold-primary);
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(212, 163, 115, 0.2);
+    }
+
+    .btn-send:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-send svg {
+      width: 22px;
+      height: 22px;
+      fill: #bc7f58;
+      transition: fill 0.2s;
+    }
+
+    .btn-send:hover svg {
+      fill: #a3643a;
+    }
+
+    .input-hint {
+      margin-top: 12px;
+      font-size: 10px;
+      color: #cbbaa5;
+      text-align: right;
+      letter-spacing: 0.3px;
+    }
+
+    /* responsive tweaks */
+    @media (max-width: 680px) {
+      body {
+        padding: 12px;
+      }
+      .app {
+        height: 95vh;
+        border-radius: 28px;
+      }
+      .topbar {
+        padding: 0 18px;
+        height: 66px;
+      }
+      .topbar-title {
+        font-size: 18px;
+      }
+      .chat-messages {
+        padding: 20px 16px;
+      }
+      .message {
+        max-width: 90%;
+      }
+      .input-area {
+        padding: 14px 18px 20px;
+      }
+      .welcome h2 {
+        font-size: 26px;
+      }
+    }
+
+    /* extra glow for gold elements */
+    .gold-accent {
+      transition: all 0.2s;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Top Bar — clean luminosity -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="lotus-icon">🪷</span>
+      <span class="topbar-title">Spiritual Assistant</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-clear" id="btnClear" onclick="clearChat()">Clear chat</button>
+    </div>
+  </header>
+
+  <!-- Chat container — spacious & bright -->
+  <main class="chat-wrapper" id="chatWrapper">
+    <div class="chat-messages" id="chatMessages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-lotus">🪷</div>
+        <h2>Welcome, Seeker</h2>
+        <p>Ask me anything about spiritual teachings, scriptures, and the path to inner peace.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Input area — friendly & bright -->
+  <footer class="input-area">
+    <div class="input-row">
+      <div class="textarea-wrapper">
+        <textarea
+          id="userInput"
+          rows="1"
+          placeholder="What wisdom do you seek today? ✨"
+          aria-label="Your spiritual question"
+        ></textarea>
+      </div>
+      <button class="btn-send" id="btnSend" onclick="sendMessage()" aria-label="Send message">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+    <p class="input-hint">↵ Enter to send · ⇧ Shift+Enter for new line</p>
+  </footer>
+</div>
+
+<script>
+  const API_BASE = 'http://localhost:8000';
+
+  const chatMessages = document.getElementById('chatMessages');
+  const userInput    = document.getElementById('userInput');
+  const btnSend      = document.getElementById('btnSend');
+  let welcomeDiv     = document.getElementById('welcome');
+
+  let isWaiting = false;
+
+  // auto-resize textarea
+  userInput.addEventListener('input', () => {
+    userInput.style.height = 'auto';
+    let newHeight = Math.min(userInput.scrollHeight, 150);
+    userInput.style.height = newHeight + 'px';
+  });
+
+  // Enter to send, Shift+Enter for newline
+  userInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isWaiting) sendMessage();
+    }
+  });
+
+  // initial health ping + periodic refresh (only dot indicator, no text)
+  userInput.focus();function hideWelcome() {
+    if (welcomeDiv && welcomeDiv.parentNode) {
+      welcomeDiv.style.display = 'none';
+    }
+  }
+
+  function scrollToBottom() {
+    const wrapper = document.querySelector('.chat-wrapper');
+    if (wrapper) wrapper.scrollTop = wrapper.scrollHeight;
+  }
+
+  function setInputEnabled(enabled) {
+    isWaiting = !enabled;
+    userInput.disabled = !enabled;
+    btnSend.disabled   = !enabled;
+    if (enabled) userInput.focus();
+  }
+
+  // Create message bubble — enhanced, bright UI
+  function createBubble(role, text, sources) {
+    const wrapper = document.createElement('div');
+    wrapper.className = `message ${role}`;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    if (role === 'user') label.textContent = '✧ YOU';
+    else if (role === 'bot') label.textContent = '🕉️ GUIDE';
+    else label.textContent = '⚠️ NOTICE';
+    wrapper.appendChild(label);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    wrapper.appendChild(bubble);
+
+    if (sources && sources.length > 0) {
+      wrapper.appendChild(buildSourcesComponent(sources));
+    }
+    return wrapper;
+  }
+
+  // Sources — friendly and collapsible
+  function buildSourcesComponent(sources) {
+    const wrap = document.createElement('div');
+    wrap.className = 'sources-wrapper';
+
+    const details = document.createElement('details');
+    details.className = 'sources';
+
+    const summary = document.createElement('summary');
+    summary.textContent = `📖 sacred references (${sources.length})`;
+    details.appendChild(summary);
+
+    const listContainer = document.createElement('div');
+    listContainer.className = 'sources-list';
+
+    for (const src of sources) {
+      const item = document.createElement('div');
+      item.className = 'source-item';
+
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'source-meta';
+
+      const bookSpan = document.createElement('span');
+      bookSpan.className = 'source-book';
+      bookSpan.textContent = src.book_name || 'Wisdom text';
+
+      const scoreSpan = document.createElement('span');
+      scoreSpan.className = 'source-score';
+      if (src.similarity_score != null) {
+        scoreSpan.textContent = `${Math.round(src.similarity_score * 100)}% match`;
+      } else {
+        scoreSpan.textContent = 'illumination';
+      }
+
+      metaDiv.appendChild(bookSpan);
+      if (src.chapter) {
+        const chapterSpan = document.createElement('span');
+        chapterSpan.className = 'source-chapter';
+        chapterSpan.textContent = src.chapter;
+        metaDiv.appendChild(chapterSpan);
+      }
+      metaDiv.appendChild(scoreSpan);
+
+      const excerptDiv = document.createElement('div');
+      excerptDiv.className = 'source-excerpt';
+      let excerptText = src.excerpt || '';
+      excerptText = excerptText.length > 280 ? excerptText.slice(0, 280).trimEnd() + '…' : excerptText;
+      excerptDiv.textContent = excerptText || '… timeless verse';
+      item.appendChild(metaDiv);
+      item.appendChild(excerptDiv);
+      listContainer.appendChild(item);
+    }
+
+    details.appendChild(listContainer);
+    wrap.appendChild(details);
+    return wrap;
+  }
+
+  // Typing indicator — gentle pulse
+  function addTypingIndicator() {
+    const typingWrapper = document.createElement('div');
+    typingWrapper.className = 'message bot';
+    typingWrapper.id = 'typingIndicator';
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = '🕉️ GUIDE';
+    typingWrapper.appendChild(label);
+
+    const dotsContainer = document.createElement('div');
+    dotsContainer.className = 'typing-indicator';
+    for (let i = 0; i < 3; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'typing-dot';
+      dotsContainer.appendChild(dot);
+    }
+    typingWrapper.appendChild(dotsContainer);
+    chatMessages.appendChild(typingWrapper);
+    scrollToBottom();
+    return typingWrapper;
+  }
+
+  function removeTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
+  }
+
+  // MAIN send function — preserves original API linkage
+  async function sendMessage() {
+    const question = userInput.value.trim();
+    if (!question || isWaiting) return;
+
+    hideWelcome();
+    setInputEnabled(false);
+
+    userInput.value = '';
+    userInput.style.height = 'auto';
+
+    // Append user message
+    chatMessages.appendChild(createBubble('user', question));
+    scrollToBottom();
+
+    addTypingIndicator();
+
+    try {
+      const response = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+
+      removeTypingIndicator();
+
+      if (!response.ok) {
+        let errorDetail = `Server error (${response.status})`;
+        try {
+          const errJson = await response.json();
+          errorDetail = errJson.detail || errJson.message || errorDetail;
+        } catch {}
+        chatMessages.appendChild(createBubble('error', `✨ Connection issue: ${errorDetail}`));
+      } else {
+        const data = await response.json();
+        const answer = data.answer || 'Stillness brings clarity.';
+        const sources = data.sources || [];
+        chatMessages.appendChild(createBubble('bot', answer, sources));
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      chatMessages.appendChild(createBubble('error', `Unable to reach the spiritual realm. Check server at ${API_BASE}\n(${err.message})`));
+    }
+
+    scrollToBottom();
+    setInputEnabled(true);
+  }
+
+  // Clear chat — preserve welcome serenity
+  function clearChat() {
+    while (chatMessages.firstChild) {
+      chatMessages.removeChild(chatMessages.firstChild);
+    }
+    const freshWelcome = document.createElement('div');
+    freshWelcome.className = 'welcome';
+    freshWelcome.id = 'welcome';
+    freshWelcome.innerHTML = `
+      <div class="welcome-lotus">🪷</div>
+      <h2>Welcome, Seeker</h2>
+      <p>Ask me anything about spiritual teachings, scriptures, and the path to inner peace. I draw from sacred texts to guide your journey.</p>
+    `;
+    chatMessages.appendChild(freshWelcome);
+    welcomeDiv = freshWelcome;
+    userInput.focus();
+  }
+
+  // initial focus
+  userInput.focus();
+</script>
+</body>
+</html>
