@@ -24,10 +24,30 @@ logger = logging.getLogger(__name__)
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 
+def _normalize_question(question: str) -> str:
+    """Normalize a question for consistent hashing.
+
+    Steps:
+      1. Lowercase
+      2. Strip leading/trailing whitespace
+      3. Collapse multiple spaces into one
+      4. Remove spaces before punctuation (? ! . , : ;)
+
+    Examples:
+      "Why humans suffer?"    → "why humans suffer?"
+      "why humans suffer ?"   → "why humans suffer?"
+      " WHY HUMANS SUFFER ? " → "why humans suffer?"
+    """
+    import re
+    text = question.lower().strip()
+    text = re.sub(r'\s+', ' ', text)              # collapse multiple spaces
+    text = re.sub(r'\s+([?!.,;:])', r'\1', text)  # remove space before punctuation
+    return text
+
+
 def _hash_question(question: str) -> str:
-    """Return MD5 hash of normalized (lowercase + stripped) question."""
-    normalized = question.strip().lower()
-    return hashlib.md5(normalized.encode("utf-8")).hexdigest()
+    """Return MD5 hash of normalized question."""
+    return hashlib.md5(_normalize_question(question).encode("utf-8")).hexdigest()
 
 
 # ── Chatbot Cache ─────────────────────────────────────────────────────────

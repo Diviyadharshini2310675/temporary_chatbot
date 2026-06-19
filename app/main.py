@@ -11,11 +11,16 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Security, UploadFile, status
+from fastapi.security import APIKeyHeader
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.chatbot import generate_answer
 from app.config import settings
@@ -40,6 +45,30 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 logger = logging.getLogger("spiritual_assistant")
+
+# ── API Key Authentication ────────────────────────────────────────────────
+_api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
+
+
+async def verify_api_key(api_key: str = Security(_api_key_header)) -> str:
+    """FastAPI dependency — validates X-API-KEY header on protected endpoints.
+
+    Returns the key on success.
+    Raises HTTP 401 on missing or invalid key.
+    """
+    if not api_key:
+        logger.warning("UNAUTHORIZED: Missing X-API-KEY header.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API key. Include X-API-KEY header.",
+        )
+    if api_key != settings.api_key:
+        logger.warning("UNAUTHORIZED: Invalid API key provided.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key.",
+        )
+    return api_key
 
 
 # ── Application Lifespan ─────────────────────────────────────────────────
@@ -157,7 +186,7 @@ async def ingest() -> IngestResponse:
 
 
 @app.post("/chat", response_model=ChatResponse, tags=["Chat"])
-async def chat(request: ChatRequest) -> ChatResponse:
+async def chat(request: ChatRequest, _: str = Security(verify_api_key)) -> ChatResponse:
     """Ask a spiritual question and get an answer from the reference books.
 
     The RAG pipeline:
@@ -302,6 +331,130 @@ async def search(request: ChatRequest) -> SearchResponse:
         results=results,
         total_indexed_chunks=total,
     )
+
+
+# ── Admin: Ingestion State ────────────────────────────────────────────────
+_ingestion_state: dict = {
+    "status": "ready",          # ready | processing | completed | failed
+    "books_processed": 0,
+    "total_chunks": 0,
+    "completed_at": None,
+    "error": None,
+}
+
+
+def _run_ingestion_background() -> None:
+    """Run ingest_all_books() in a background thread and update state."""
+    global _ingestion_state
+    _ingestion_state.update({
+        "status": "processing",
+        "books_processed": 0,
+        "total_chunks": 0,
+        "completed_at": None,
+        "error": None,
+    })
+    try:
+        result = ingest_all_books()
+        _ingestion_state.update({
+            "status": "completed",
+            "books_processed": result.get("books_processed", 0),
+            "total_chunks": result.get("total_chunks", 0),
+            "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "error": None,
+        })
+        logger.info("Admin ingestion completed: %s", result)
+    except Exception as exc:
+        _ingestion_state.update({
+            "status": "failed",
+            "error": str(exc),
+            "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
+        logger.error("Admin ingestion failed: %s", exc)
+
+
+# ── Admin Routes ──────────────────────────────────────────────────────────
+
+
+@app.get("/admin", include_in_schema=False)
+async def serve_admin():
+    """Serve the admin panel HTML page."""
+    return FileResponse("static/admin.html")
+
+
+@app.get("/admin/pdfs", tags=["Admin"])
+async def list_pdfs(_: str = Security(verify_api_key)) -> JSONResponse:
+    """List all PDFs in the books/ folder."""
+    books_dir = settings.books_dir
+    if not books_dir.exists():
+        return JSONResponse({"pdfs": []})
+    pdfs = sorted([f.name for f in books_dir.glob("*.pdf")])
+    return JSONResponse({"pdfs": pdfs, "count": len(pdfs)})
+
+
+@app.post("/admin/upload", tags=["Admin"])
+async def upload_pdf(
+    file: UploadFile = File(...),
+    _: str = Security(verify_api_key),
+) -> JSONResponse:
+    """Upload a PDF to the books/ folder."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+
+    books_dir = settings.books_dir
+    books_dir.mkdir(parents=True, exist_ok=True)
+
+    dest = books_dir / file.filename
+    exists = dest.exists()
+
+    content = await file.read()
+    dest.write_bytes(content)
+    logger.info("Admin uploaded PDF: %s", file.filename)
+
+    return JSONResponse({
+        "filename": file.filename,
+        "replaced": exists,
+        "message": f"{'Replaced' if exists else 'Uploaded'}: {file.filename}",
+    })
+
+
+@app.delete("/admin/pdfs/{filename}", tags=["Admin"])
+async def delete_pdf(
+    filename: str,
+    _: str = Security(verify_api_key),
+) -> JSONResponse:
+    """Delete a PDF from the books/ folder."""
+    books_dir = settings.books_dir
+    target = books_dir / filename
+
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"{filename} not found.")
+    if not target.suffix.lower() == ".pdf":
+        raise HTTPException(status_code=400, detail="Only PDF files can be deleted.")
+
+    target.unlink()
+    logger.info("Admin deleted PDF: %s", filename)
+    return JSONResponse({"message": f"Deleted: {filename}"})
+
+
+@app.post("/admin/ingest", tags=["Admin"])
+async def admin_ingest(
+    background_tasks: BackgroundTasks,
+    _: str = Security(verify_api_key),
+) -> JSONResponse:
+    """Trigger ingestion pipeline in background."""
+    global _ingestion_state
+    if _ingestion_state["status"] == "processing":
+        raise HTTPException(status_code=409, detail="Ingestion already in progress.")
+
+    background_tasks.add_task(_run_ingestion_background)
+    logger.info("Admin triggered ingestion via background task.")
+    return JSONResponse({"message": "Ingestion started.", "status": "processing"})
+
+
+@app.get("/admin/ingest/status", tags=["Admin"])
+async def admin_ingest_status(_: str = Security(verify_api_key)) -> JSONResponse:
+    """Poll the current ingestion status."""
+    return JSONResponse(_ingestion_state)
 
 
 # ── Direct Execution ─────────────────────────────────────────────────────

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel | Spiritual Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold: #c9a87c;
+      --gold-light: #f0e0c8;
+      --gold-border: #e9d9c2;
+      --bg: #fefaf5;
+      --bg-card: #ffffff;
+      --text: #3b2e24;
+      --text-muted: #9e8b78;
+      --danger: #e07a5f;
+      --danger-bg: #fef2ef;
+      --success: #5c9e6b;
+      --success-bg: #edf7f0;
+      --warning: #d4a84c;
+      --warning-bg: #fdf6e3;
+      --processing: #6b8fce;
+      --processing-bg: #eef2fb;
+      --shadow: 0 4px 20px rgba(0,0,0,0.06);
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(145deg, #fff5ec, #fef3e8);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fffdf9;
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius);
+      padding: 16px 28px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-left h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #c0825e, #b46f48);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .btn-back {
+      background: transparent;
+      border: 1px solid var(--gold-border);
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-back:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #b47c54;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--gold-border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Upload */
+    .upload-zone {
+      border: 2px dashed var(--gold-border);
+      border-radius: 12px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--gold);
+      background: #fdf7f0;
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-zone .upload-icon { font-size: 36px; margin-bottom: 10px; }
+    .upload-zone p { font-size: 14px; color: var(--text-muted); }
+    .upload-zone .file-name { font-size: 13px; color: var(--gold); margin-top: 8px; font-weight: 500; }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #b8904a;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 5px 14px;
+      width: auto;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-bg);
+    }
+
+    .btn-ingest {
+      background: linear-gradient(135deg, #6b8fce, #5a7ab8);
+      color: white;
+      font-size: 15px;
+      padding: 14px;
+    }
+
+    .btn-ingest:hover:not(:disabled) {
+      background: linear-gradient(135deg, #5a7ab8, #4a6aa8);
+      transform: translateY(-1px);
+    }
+
+    .btn-ingest:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* PDF list */
+    .pdf-list {
+      max-height: 320px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .pdf-list::-webkit-scrollbar { width: 4px; }
+    .pdf-list::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 4px; }
+
+    .pdf-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #fefaf5;
+      border: 1px solid var(--gold-border);
+      border-radius: 10px;
+      font-size: 13px;
+      gap: 10px;
+    }
+
+    .pdf-item .pdf-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .pdf-item .pdf-icon { font-size: 16px; flex-shrink: 0; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      padding: 20px;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .status-ready    { background: #f0f0f0; color: #666; }
+    .status-processing { background: var(--processing-bg); color: var(--processing); }
+    .status-completed { background: var(--success-bg); color: var(--success); }
+    .status-failed   { background: var(--danger-bg); color: var(--danger); }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-processing .status-dot {
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .status-details {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      background: #fefaf5;
+      border: 1px solid var(--gold-border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+
+    .status-details strong { color: var(--text); }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: var(--radius);
+      padding: 28px;
+      max-width: 420px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    .modal h3 {
+      font-family: 'Cinzel', serif;
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .modal p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .modal-info {
+      background: var(--processing-bg);
+      border: 1px solid #c0d0ef;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--processing);
+      margin-bottom: 20px;
+      line-height: 1.7;
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 12px;
+    }
+
+    .modal-btns button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+      background: #f0ece8;
+      color: var(--text-muted);
+    }
+
+    .modal-btn-cancel:hover { background: #e5e0db; }
+
+    .modal-btn-confirm {
+      background: var(--gold);
+      color: white;
+    }
+
+    .modal-btn-confirm:hover { background: #b8904a; }
+
+    .modal-btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .modal-btn-danger:hover { background: #c96040; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      color: white;
+      z-index: 200;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.success { background: var(--success); }
+    .toast.error   { background: var(--danger); }
+    .toast.info    { background: var(--processing); }
+
+    .full-width { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span style="font-size:26px">⚙️</span>
+    <h1>Admin Panel</h1>
+  </div>
+  <a href="/" class="btn-back">← Back to Chat</a>
+</div>
+
+<!-- Grid -->
+<div class="grid">
+
+  <!-- Upload Card -->
+  <div class="card">
+    <h2>📤 Upload PDF</h2>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept=".pdf" />
+      <div class="upload-icon">📄</div>
+      <p>Drag & drop a PDF here<br/>or click to browse</p>
+      <div class="file-name" id="fileName"></div>
+    </div>
+    <button class="btn btn-primary" id="btnUpload" onclick="uploadPDF()" disabled>Upload PDF</button>
+  </div>
+
+  <!-- PDF List Card -->
+  <div class="card">
+    <h2>📚 Books Folder <span id="pdfCount" style="font-size:12px;color:var(--text-muted);font-family:Inter,sans-serif;font-weight:400"></span></h2>
+    <div class="pdf-list" id="pdfList">
+      <div class="empty-state">Loading PDFs…</div>
+    </div>
+  </div>
+
+  <!-- Ingestion Card (full width) -->
+  <div class="card full-width">
+    <h2>🚀 Ingestion</h2>
+    <div id="statusBadge" class="status-badge status-ready">
+      <div class="status-dot"></div>
+      <span id="statusText">Ready</span>
+    </div>
+    <div id="statusDetails" class="status-details" style="display:none"></div>
+    <button class="btn btn-ingest" id="btnIngest" onclick="confirmIngest()">Save and Run Ingestion</button>
+  </div>
+
+</div>
+
+<!-- Ingestion Confirm Modal -->
+<div class="modal-overlay" id="ingestModal">
+  <div class="modal">
+    <h3>⚠️ Run Ingestion?</h3>
+    <p>This will rebuild the entire knowledge base.</p>
+    <div class="modal-info" id="ingestModalInfo"></div>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal('ingestModal')">Cancel</button>
+      <button class="modal-btn-confirm" onclick="runIngest()">Run Ingestion</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>🗑️ Delete PDF?</h3>
+    <p id="deleteModalText"></p>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="modal-btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Replace Confirm Modal -->
+<div class="modal-overlay" id="replaceModal">
+  <div class="modal">
+    <h3>📄 File Already Exists</h3>
+    <p id="replaceModalText"></p>
+    <div class="modal-btns">
+      <button class="modal-btn-cancel" onclick="closeModal('replaceModal')">Cancel</button>
+      <button class="modal-btn-confirm" onclick="proceedUpload()">Replace</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_BASE = 'http://localhost:8000';
+  const API_KEY  = 'sc-spiritual-8f4a2b9d1e6c3f7a0b5e2d8c4f1a9e3b';
+
+  let selectedFile = null;
+  let fileToDelete = null;
+  let pollInterval = null;
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+
+  function apiHeaders(extra) {
+    return { 'X-API-KEY': API_KEY, ...extra };
+  }
+
+  function showToast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `toast ${type} show`;
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+  }
+
+  // ── PDF List ─────────────────────────────────────────────────────────
+
+  async function loadPDFs() {
+    try {
+      const res = await fetch(`${API_BASE}/admin/pdfs`, { headers: apiHeaders() });
+      if (!res.ok) {
+        document.getElementById('pdfList').innerHTML = '<div class="empty-state">Failed to load PDFs.</div>';
+        return;
+      }
+      const data = await res.json();
+      const list = document.getElementById('pdfList');
+      const count = document.getElementById('pdfCount');
+      count.textContent = `(${data.count} file${data.count !== 1 ? 's' : ''})`;
+
+      if (!data.pdfs || data.pdfs.length === 0) {
+        list.innerHTML = '<div class="empty-state">No PDFs in books folder.</div>';
+        return;
+      }
+
+      list.innerHTML = '';
+      data.pdfs.forEach(name => {
+        const item = document.createElement('div');
+        item.className = 'pdf-item';
+        item.innerHTML = `
+          <span class="pdf-icon">📄</span>
+          <span class="pdf-name" title="${name}">${name}</span>
+          <button class="btn btn-danger" onclick="deletePDF('${name}')">Delete</button>
+        `;
+        list.appendChild(item);
+      });
+    } catch (err) {
+      document.getElementById('pdfList').innerHTML = '<div class="empty-state">Error loading PDFs.</div>';
+    }
+  }
+
+  // ── Upload ────────────────────────────────────────────────────────────
+
+  const fileInput = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+
+  fileInput.addEventListener('change', () => {
+    const f = fileInput.files[0];
+    if (f) {
+      selectedFile = f;
+      document.getElementById('fileName').textContent = f.name;
+      document.getElementById('btnUpload').disabled = false;
+    }
+  });
+
+  uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+  });
+
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.toLowerCase().endsWith('.pdf')) {
+      selectedFile = f;
+      document.getElementById('fileName').textContent = f.name;
+      document.getElementById('btnUpload').disabled = false;
+    } else {
+      showToast('Only PDF files are allowed.', 'error');
+    }
+  });
+
+  async function uploadPDF() {
+    if (!selectedFile) return;
+
+    // Check if file already exists
+    const res = await fetch(`${API_BASE}/admin/pdfs`, { headers: apiHeaders() });
+    const data = await res.json();
+    if (data.pdfs && data.pdfs.includes(selectedFile.name)) {
+      document.getElementById('replaceModalText').textContent =
+        `"${selectedFile.name}" already exists. Replace it?`;
+      openModal('replaceModal');
+      return;
+    }
+
+    await proceedUpload();
+  }
+
+  async function proceedUpload() {
+    closeModal('replaceModal');
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    document.getElementById('btnUpload').disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/upload`, {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        showToast(data.message, 'success');
+        selectedFile = null;
+        document.getElementById('fileName').textContent = '';
+        fileInput.value = '';
+        document.getElementById('btnUpload').disabled = true;
+        loadPDFs();
+      } else {
+        const err = await res.json();
+        showToast(err.detail || 'Upload failed.', 'error');
+        document.getElementById('btnUpload').disabled = false;
+      }
+    } catch (e) {
+      showToast('Upload failed: ' + e.message, 'error');
+      document.getElementById('btnUpload').disabled = false;
+    }
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────
+
+  function deletePDF(name) {
+    fileToDelete = name;
+    document.getElementById('deleteModalText').textContent =
+      `Are you sure you want to delete "${name}"? This cannot be undone.`;
+    openModal('deleteModal');
+  }
+
+  async function confirmDelete() {
+    closeModal('deleteModal');
+    if (!fileToDelete) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/pdfs/${encodeURIComponent(fileToDelete)}`, {
+        method: 'DELETE',
+        headers: apiHeaders(),
+      });
+
+      if (res.ok) {
+        showToast(`Deleted: ${fileToDelete}`, 'success');
+        loadPDFs();
+      } else {
+        const err = await res.json();
+        showToast(err.detail || 'Delete failed.', 'error');
+      }
+    } catch (e) {
+      showToast('Delete failed: ' + e.message, 'error');
+    }
+    fileToDelete = null;
+  }
+
+  // ── Ingestion ─────────────────────────────────────────────────────────
+
+  async function confirmIngest() {
+    const res = await fetch(`${API_BASE}/admin/pdfs`, { headers: apiHeaders() });
+    const data = await res.json();
+    const count = data.count || 0;
+    document.getElementById('ingestModalInfo').innerHTML =
+      `<strong>Books Found: ${count}</strong><br/>` +
+      `This action will:<br/>` +
+      `• Clear the existing Qdrant collection<br/>` +
+      `• Re-read all ${count} PDF(s) from books/ folder<br/>` +
+      `• Rebuild the knowledge base`;
+    openModal('ingestModal');
+  }
+
+  async function runIngest() {
+    closeModal('ingestModal');
+    document.getElementById('btnIngest').disabled = true;
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/ingest`, {
+        method: 'POST',
+        headers: apiHeaders(),
+      });
+
+      if (res.ok) {
+        showToast('Ingestion started…', 'info');
+        startPolling();
+      } else {
+        const err = await res.json();
+        showToast(err.detail || 'Failed to start ingestion.', 'error');
+        document.getElementById('btnIngest').disabled = false;
+      }
+    } catch (e) {
+      showToast('Error: ' + e.message, 'error');
+      document.getElementById('btnIngest').disabled = false;
+    }
+  }
+
+  function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(pollStatus, 2000);
+    pollStatus();
+  }
+
+  async function pollStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/admin/ingest/status`, { headers: apiHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      updateStatusUI(data);
+
+      if (data.status === 'completed' || data.status === 'failed') {
+        clearInterval(pollInterval);
+        document.getElementById('btnIngest').disabled = false;
+        if (data.status === 'completed') {
+          showToast('Ingestion completed!', 'success');
+        } else {
+          showToast('Ingestion failed: ' + (data.error || ''), 'error');
+        }
+      }
+    } catch {}
+  }
+
+  function updateStatusUI(data) {
+    const badge = document.getElementById('statusBadge');
+    const text = document.getElementById('statusText');
+    const details = document.getElementById('statusDetails');
+
+    const labels = {
+      ready: 'Ready', processing: 'Processing…',
+      completed: 'Completed', failed: 'Failed',
+    };
+
+    badge.className = `status-badge status-${data.status}`;
+    text.textContent = labels[data.status] || data.status;
+
+    if (data.status === 'processing') {
+      details.style.display = 'block';
+      details.innerHTML = '<strong>Ingestion in progress…</strong><br/>Please wait.';
+    } else if (data.status === 'completed') {
+      details.style.display = 'block';
+      details.innerHTML =
+        `<strong>PDFs Processed:</strong> ${data.books_processed}<br/>` +
+        `<strong>Chunks Created:</strong> ${data.total_chunks}<br/>` +
+        `<strong>Completed At:</strong> ${data.completed_at}`;
+    } else if (data.status === 'failed') {
+      details.style.display = 'block';
+      details.innerHTML = `<strong style="color:var(--danger)">Error:</strong> ${data.error || 'Unknown error'}`;
+    } else {
+      details.style.display = 'none';
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────
+
+  loadPDFs();
+  pollStatus();
+</script>
+</body>
+</html>

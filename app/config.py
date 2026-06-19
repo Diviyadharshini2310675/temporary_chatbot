@@ -91,6 +91,11 @@ class Settings:
         default_factory=lambda: os.getenv("LOG_LEVEL", "INFO")
     )
 
+    # ── API Key Authentication ────────────────────────────────────────────
+    api_key: str = field(
+        default_factory=lambda: os.getenv("API_KEY", "")
+    )
+
     # ── MySQL ─────────────────────────────────────────────────────────────
     mysql_host: str = field(
         default_factory=lambda: os.getenv("MYSQL_HOST", "localhost")
