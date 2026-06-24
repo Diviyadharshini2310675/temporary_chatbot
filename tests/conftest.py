@@ -27,7 +27,7 @@ def mock_settings():
             "EMBEDDING_DIMENSION": "384",
             "CHUNK_SIZE_WORDS": "500",
             "CHUNK_OVERLAP_WORDS": "100",
-            "TOP_K_RESULTS": "5",
+            "TOP_K_RESULTS": "2",
             "SIMILARITY_THRESHOLD": "0.35",
             "LOG_LEVEL": "WARNING",
             # PostgreSQL — point at a non-existent host so no accidental live calls

@@ -67,7 +67,7 @@ Rules:
 - Base your answer on the themes, teachings, and ideas present in the passages.
 - The question may be phrased differently from the passage text — use your understanding to connect the two.
 - Do NOT add teachings, quotes, or ideas that are not present in the passages.
-- If the passages are genuinely unrelated to the question, reply: 'This information was not found in the uploaded FAQ documents.'
+- If the passages are genuinely unrelated to the question, reply: 'I couldn't find information on this topic in our knowledge base, as it appears to be outside the scope of AiR's teachings, books, blogs, quotes, and other published content. If you have a question related to AiR's philosophy, spiritual teachings, books, or published works, I would be happy to help.'
 - Write a warm, clear, helpful answer in natural language.
 - Do NOT add book names, page numbers, or citations at the end of your answer. Sources are shown separately by the interface."""
 
@@ -195,20 +195,41 @@ def generate_answer(
         settings.openrouter_model,
     )
 
+    # ── Detect fallback response — return empty sources ──────────────────
+    FALLBACK_PHRASES = [
+        "outside the scope of air",
+        "i couldn't find information on this topic",
+        "this information was not found",
+        "not found in the uploaded faq",
+        "i could not find this information",
+    ]
+    is_fallback = any(phrase in answer_text.lower() for phrase in FALLBACK_PHRASES)
+
     # ── Build source list ────────────────────────────────────────────────
+    # All retrieved_chunks (up to top_k=5) are passed to the LLM above.
+    # For display, deduplicate by book_name only — show max 2 unique books,
+    # keeping the highest-scored chunk per book (chunks are already score-sorted).
     sources: List[Source] = []
-    for chunk in retrieved_chunks:
-        excerpt = chunk.chunk_text[:200]
-        if len(chunk.chunk_text) > 200:
-            excerpt += "…"
-        sources.append(
-            Source(
-                book_name=chunk.book_name,
-                chapter=chunk.chapter,
-                excerpt=excerpt,
-                similarity_score=chunk.similarity_score,
+    if not is_fallback:
+        seen_books: set = set()
+        for chunk in retrieved_chunks:
+            book_key = chunk.book_name.strip().lower()
+            if book_key in seen_books:
+                continue
+            seen_books.add(book_key)
+            excerpt = chunk.chunk_text[:200]
+            if len(chunk.chunk_text) > 200:
+                excerpt += "…"
+            sources.append(
+                Source(
+                    book_name=chunk.book_name,
+                    chapter=chunk.chapter,
+                    excerpt=excerpt,
+                    similarity_score=chunk.similarity_score,
+                )
             )
-        )
+            if len(sources) >= 2:
+                break
 
     # ── Step 5: Save to chatbot_cache for future requests ────────────────
     sources_as_dicts = [s.model_dump() for s in sources]

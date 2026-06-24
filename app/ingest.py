@@ -26,6 +26,47 @@ logger = logging.getLogger(__name__)
 # ── Public API ───────────────────────────────────────────────────────────
 
 
+def ingest_single_book(pdf_path: Path) -> dict:
+    """Ingest a single PDF incrementally — does NOT clear other books.
+
+    Used by the admin upload flow. Only touches the uploaded PDF's vectors.
+
+    Returns a result dict with status, total_chunks, elapsed_seconds.
+    """
+    start = time.perf_counter()
+
+    if not pdf_path.exists():
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+    logger.info("Incremental ingest: '%s' …", pdf_path.name)
+
+    try:
+        chunks_count = _ingest_one_book(pdf_path)
+    except Exception as exc:
+        elapsed = time.perf_counter() - start
+        logger.error("Incremental ingest failed for '%s': %s", pdf_path.name, exc)
+        return {
+            "status": "error",
+            "filename": pdf_path.name,
+            "total_chunks": 0,
+            "elapsed_seconds": round(elapsed, 2),
+            "error": str(exc),
+        }
+
+    elapsed = time.perf_counter() - start
+    logger.info(
+        "Incremental ingest complete: '%s' — %d chunks in %.1fs.",
+        pdf_path.name, chunks_count, elapsed,
+    )
+    return {
+        "status": "success",
+        "filename": pdf_path.name,
+        "total_chunks": chunks_count,
+        "elapsed_seconds": round(elapsed, 2),
+        "error": None,
+    }
+
+
 def ingest_all_books() -> dict:
     """Run the full ingestion pipeline for every PDF in the books/ directory.
 
@@ -212,26 +253,64 @@ def _chunk_pages(
 
 
 def _detect_chapter(text: str) -> str:
-    """Try to detect a chapter name or number from chunk text.
+    """Detect chapter/section headings from chunk text.
 
-    Looks for patterns like:
-      - 'Chapter 1', 'Chapter - 1', 'CHAPTER ONE'
-      - 'Section 2', 'Part 3'
-      - Lines that look like headings (short, all-caps or title-case)
+    Recognises a wide range of formats used in books and FAQ documents:
+      - Chapter 1 / CHAPTER 1 / Chapter-1 / Chapter: 1
+      - Ch. 1 / Ch 1 / CH. 1 / CH 1
+      - Part I / Part II / Part 1
+      - Section 1 / Lesson 1 / Unit 1
+      - Volume 1 / Vol. 1 / Book 1
+      - Module 1 / Topic 1 / Article 1
+      - Question 1 / Q1 / Q. 1
+      - Preface / Foreword / Introduction / Prologue
+      - Epilogue / Conclusion / Afterword / Appendix
 
-    Returns an empty string if nothing is found.
+    Returns the matched heading string (max 80 chars), or "" if nothing found.
+    Only returns text that actually exists in the document — no generation.
     """
-    # Pattern: Chapter X or Chapter - X or Chapter: X
+    # ── Pattern 1: Chapter variants with number ───────────────────────────
+    # Matches: Chapter 1, CHAPTER 1, Chapter-1, Chapter: 1, Ch. 1, Ch 1
     match = re.search(
-        r'(?i)\b(chapter\s*[-:—]?\s*\d+[^\n\.]{0,60})',
+        r'(?i)\b(ch(?:apter|\.?)\s*[-:—]?\s*\d+[^\n\.]{0,60})',
         text
     )
     if match:
         return match.group(1).strip()[:80]
 
-    # Pattern: Section X or Part X
+    # ── Pattern 2: Part with Roman or Arabic numerals ─────────────────────
+    # Matches: Part I, Part II, Part 1, Part - 2
     match = re.search(
-        r'(?i)\b((?:section|part)\s*[-:—]?\s*\d+[^\n\.]{0,60})',
+        r'(?i)\b(part\s*[-:—]?\s*(?:[IVXLCDM]+|\d+)[^\n\.]{0,60})',
+        text
+    )
+    if match:
+        return match.group(1).strip()[:80]
+
+    # ── Pattern 3: Numbered section keywords ─────────────────────────────
+    # Matches: Section 1, Lesson 1, Unit 1, Volume 1, Vol. 1,
+    #          Book 1, Module 1, Topic 1, Article 1, Question 1
+    match = re.search(
+        r'(?i)\b((?:section|lesson|unit|volume|vol\.|book|module|topic|article|question)\s*[-:—]?\s*\d+[^\n\.]{0,60})',
+        text
+    )
+    if match:
+        return match.group(1).strip()[:80]
+
+    # ── Pattern 4: Q followed by number (FAQ format) ─────────────────────
+    # Matches: Q1, Q. 1, Q: 1, Q-1 at start of a word boundary
+    match = re.search(
+        r'(?i)\b(Q\.?\s*[-:—]?\s*\d+[^\n\.]{0,60})',
+        text
+    )
+    if match:
+        return match.group(1).strip()[:80]
+
+    # ── Pattern 5: Standalone structural keywords ─────────────────────────
+    # Matches: Preface, Foreword, Introduction, Prologue, Epilogue,
+    #          Conclusion, Afterword, Appendix — as a standalone heading
+    match = re.search(
+        r'(?i)\b((?:Preface|Foreword|Introduction|Prologue|Epilogue|Conclusion|Afterword|Appendix)(?:\s+[A-Z][^\n\.]{0,50})?)\b',
         text
     )
     if match:

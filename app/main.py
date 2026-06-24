@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.chatbot import generate_answer
 from app.config import settings
 from app.embeddings import get_model
-from app.ingest import ingest_all_books
+from app.ingest import ingest_all_books, ingest_single_book
 from app.models import (
     ChatRequest,
     ChatResponse,
@@ -35,7 +35,7 @@ from app.models import (
 )
 from app.qa_service import init_cache_table
 from app.retrieve import retrieve_relevant_chunks
-from app.vectordb import get_chunk_count, init_collection
+from app.vectordb import get_chunk_count, init_collection, clear_book
 
 # ── Logging Setup ────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -239,7 +239,7 @@ async def chat(request: ChatRequest, _: str = Security(verify_api_key)) -> ChatR
         )
         return ChatResponse(
             answer=(
-                "This information was not found in the uploaded FAQ documents."
+                "I couldn't find information on this topic in our knowledge base, as it appears to be outside the scope of AiR's teachings, books, blogs, quotes, and other published content. If you have a question related to AiR's philosophy, spiritual teachings, books, or published works, I would be happy to help."
             ),
             sources=[],
             question=question,
@@ -336,11 +336,43 @@ async def search(request: ChatRequest) -> SearchResponse:
 # ── Admin: Ingestion State ────────────────────────────────────────────────
 _ingestion_state: dict = {
     "status": "ready",          # ready | processing | completed | failed
-    "books_processed": 0,
+    "filename": None,
     "total_chunks": 0,
+    "elapsed_seconds": 0,
     "completed_at": None,
     "error": None,
 }
+
+
+def _run_single_ingest(pdf_path: Path) -> None:
+    """Ingest a single PDF in background and update state."""
+    global _ingestion_state
+    _ingestion_state.update({
+        "status": "processing",
+        "filename": pdf_path.name,
+        "total_chunks": 0,
+        "elapsed_seconds": 0,
+        "completed_at": None,
+        "error": None,
+    })
+    try:
+        result = ingest_single_book(pdf_path)
+        _ingestion_state.update({
+            "status": result["status"],
+            "filename": result["filename"],
+            "total_chunks": result["total_chunks"],
+            "elapsed_seconds": result["elapsed_seconds"],
+            "completed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+            "error": result.get("error"),
+        })
+        logger.info("Incremental ingest completed: %s", result)
+    except Exception as exc:
+        _ingestion_state.update({
+            "status": "failed",
+            "error": str(exc),
+            "completed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+        })
+        logger.error("Incremental ingest failed: %s", exc)
 
 
 def _run_ingestion_background() -> None:
@@ -348,8 +380,9 @@ def _run_ingestion_background() -> None:
     global _ingestion_state
     _ingestion_state.update({
         "status": "processing",
-        "books_processed": 0,
+        "filename": "all books",
         "total_chunks": 0,
+        "elapsed_seconds": 0,
         "completed_at": None,
         "error": None,
     })
@@ -357,19 +390,19 @@ def _run_ingestion_background() -> None:
         result = ingest_all_books()
         _ingestion_state.update({
             "status": "completed",
-            "books_processed": result.get("books_processed", 0),
+            "filename": f"{result.get('books_processed', 0)} books",
             "total_chunks": result.get("total_chunks", 0),
-            "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "elapsed_seconds": result.get("elapsed_seconds", 0),
+            "completed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
             "error": None,
         })
-        logger.info("Admin ingestion completed: %s", result)
     except Exception as exc:
         _ingestion_state.update({
             "status": "failed",
             "error": str(exc),
-            "completed_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "completed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
         })
-        logger.error("Admin ingestion failed: %s", exc)
+        logger.error("Admin full ingestion failed: %s", exc)
 
 
 # ── Admin Routes ──────────────────────────────────────────────────────────
@@ -377,28 +410,31 @@ def _run_ingestion_background() -> None:
 
 @app.get("/admin", include_in_schema=False)
 async def serve_admin():
-    """Serve the admin panel HTML page."""
     return FileResponse("static/admin.html")
 
 
 @app.get("/admin/pdfs", tags=["Admin"])
 async def list_pdfs(_: str = Security(verify_api_key)) -> JSONResponse:
-    """List all PDFs in the books/ folder."""
     books_dir = settings.books_dir
     if not books_dir.exists():
-        return JSONResponse({"pdfs": []})
+        return JSONResponse({"pdfs": [], "count": 0})
     pdfs = sorted([f.name for f in books_dir.glob("*.pdf")])
     return JSONResponse({"pdfs": pdfs, "count": len(pdfs)})
 
 
 @app.post("/admin/upload", tags=["Admin"])
 async def upload_pdf(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     _: str = Security(verify_api_key),
 ) -> JSONResponse:
-    """Upload a PDF to the books/ folder."""
+    """Upload a PDF and automatically trigger incremental ingestion."""
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed.")
+
+    global _ingestion_state
+    if _ingestion_state["status"] == "processing":
+        raise HTTPException(status_code=409, detail="Ingestion already in progress.")
 
     books_dir = settings.books_dir
     books_dir.mkdir(parents=True, exist_ok=True)
@@ -408,12 +444,16 @@ async def upload_pdf(
 
     content = await file.read()
     dest.write_bytes(content)
-    logger.info("Admin uploaded PDF: %s", file.filename)
+    logger.info("Admin uploaded PDF: %s (replaced=%s)", file.filename, exists)
+
+    # Auto-trigger incremental ingestion
+    background_tasks.add_task(_run_single_ingest, dest)
 
     return JSONResponse({
         "filename": file.filename,
         "replaced": exists,
-        "message": f"{'Replaced' if exists else 'Uploaded'}: {file.filename}",
+        "message": f"{'Replaced' if exists else 'Uploaded'}: {file.filename}. Ingestion started.",
+        "status": "processing",
     })
 
 
@@ -422,18 +462,26 @@ async def delete_pdf(
     filename: str,
     _: str = Security(verify_api_key),
 ) -> JSONResponse:
-    """Delete a PDF from the books/ folder."""
+    """Delete a PDF and remove only its vectors from Qdrant."""
     books_dir = settings.books_dir
     target = books_dir / filename
 
     if not target.exists():
         raise HTTPException(status_code=404, detail=f"{filename} not found.")
-    if not target.suffix.lower() == ".pdf":
+    if target.suffix.lower() != ".pdf":
         raise HTTPException(status_code=400, detail="Only PDF files can be deleted.")
+
+    # Remove vectors for this book only
+    book_name = target.stem
+    try:
+        deleted_count = clear_book(book_name)
+        logger.info("Removed %d vectors for '%s' from Qdrant.", deleted_count, book_name)
+    except Exception as exc:
+        logger.warning("Could not remove vectors for '%s': %s", book_name, exc)
 
     target.unlink()
     logger.info("Admin deleted PDF: %s", filename)
-    return JSONResponse({"message": f"Deleted: {filename}"})
+    return JSONResponse({"message": f"Deleted: {filename} and its vectors from Qdrant."})
 
 
 @app.post("/admin/ingest", tags=["Admin"])
@@ -441,19 +489,16 @@ async def admin_ingest(
     background_tasks: BackgroundTasks,
     _: str = Security(verify_api_key),
 ) -> JSONResponse:
-    """Trigger ingestion pipeline in background."""
+    """Trigger full ingestion pipeline in background (clears + rebuilds all)."""
     global _ingestion_state
     if _ingestion_state["status"] == "processing":
         raise HTTPException(status_code=409, detail="Ingestion already in progress.")
-
     background_tasks.add_task(_run_ingestion_background)
-    logger.info("Admin triggered ingestion via background task.")
-    return JSONResponse({"message": "Ingestion started.", "status": "processing"})
+    return JSONResponse({"message": "Full ingestion started.", "status": "processing"})
 
 
 @app.get("/admin/ingest/status", tags=["Admin"])
 async def admin_ingest_status(_: str = Security(verify_api_key)) -> JSONResponse:
-    """Poll the current ingestion status."""
     return JSONResponse(_ingestion_state)
 
 

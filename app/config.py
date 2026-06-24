@@ -80,7 +80,7 @@ class Settings:
 
     # ── Retrieval ────────────────────────────────────────────────────────
     top_k_results: int = field(
-        default_factory=lambda: int(os.getenv("TOP_K_RESULTS", "5"))
+        default_factory=lambda: int(os.getenv("TOP_K_RESULTS", "2"))
     )
     similarity_threshold: float = field(
         default_factory=lambda: float(os.getenv("SIMILARITY_THRESHOLD", "0.35"))
